@@ -1,0 +1,24 @@
+{
+  "name": "allex_datalib",
+  "version": "1.0.0",
+  "description": "AllexJS lib for data handling",
+  "main": "index.js",
+  "scripts": {
+    "test": "allex-mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allex-libs/data.git"
+  },
+  "keywords": [
+    "ecosystem:AllexJS",
+    "data",
+    "lib"
+  ],
+  "author": "Andrija Petrovic <andrija.hers@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allex-libs/data/issues"
+  },
+  "homepage": "https://github.com/allex-libs/data#readme"
+}

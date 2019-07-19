@@ -72,7 +72,7 @@ function createRecord(execlib, outerlib, mylib){
     var prophash = lib.extend({}, p_prophash);
     if(!(prophash && prophash.fields)){
       console.trace();
-      throw "Record needs the fields array in its property hash";
+      throw new Error("Record needs the fields array in its property hash");
     }
     if (lib.isArray(visiblefields)) {
       prophash.fields = filterOut(prophash.fields, visiblefields);

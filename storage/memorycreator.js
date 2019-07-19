@@ -24,13 +24,13 @@ function createMemoryStorage(execlib, mylib){
     }
     return q(true);
   };
-  MemoryStorage.prototype._removeDataAtIndex = function (data, index) {
-    if (index === data.length-1) {
-      data.pop();
+  MemoryStorage.prototype.removeDataAtIndex = function (index) {
+    if (index === this.data.length-1) {
+      this.data.pop();
     } else if (index === 0){
-      data.shift();
+      this.data.shift();
     } else {
-      data.splice(index, 1);
+      this.data.splice(index, 1);
     }
   };
   MemoryStorage.prototype._traverseConditionally = function (cb) {

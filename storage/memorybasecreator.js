@@ -19,29 +19,14 @@ function createMemoryStorageBase (execlib, mylib) {
     StorageBase.prototype.destroy.call(this);
   };
   MemoryStorageBase.prototype.doCreate = function(record,defer){
+    var pr;
     if (!this.__record) {
       defer.resolve(null);
       return;
     }
-    var mpk = this.__record.primaryKey, pr;
-    if (mpk) {
-      if (lib.isArray(mpk)) {
-        var violation = this.recordViolatesComplexPrimaryKey(record);
-        if (violation) {
-          defer.reject(violation);
-          return;
-        }
-      } else {
-        var violation = this.recordViolatesSimplePrimaryKey(record);
-        if (violation) {
-          defer.reject(violation);
-          return;
-        }
-      }
-    }
     pr = this.data.push(record);
-    if (pr && 'function' === typeof pr.done) {
-      pr.done(
+    if (pr && q.isThenable(pr)) {
+      pr.then(
         defer.resolve.bind(defer, record),
         defer.reject.bind(defer)
       );
@@ -56,18 +41,40 @@ function createMemoryStorageBase (execlib, mylib) {
     }
   }
   MemoryStorageBase.prototype.doRead = function(query,defer){
+    var tr, start, end;
     if (!this.data) {
       defer.resolve(null);
       return;
     }
     if(!(query.isLimited()||query.isOffset())){
-      this._traverseData(processRead.bind(null,this.__id,query,defer)).then(defer.resolve.bind(defer, null));
+      tr = this._traverseData(processRead.bind(null,this.__id,query,defer));
     }else{
-      var start = query.offset, end=Math.min(start+query.limit,this.data.length);
-      this._traverseDataRange(processRead.bind(null, this.__id,query, defer), start, end).then(defer.resolve.bind(defer, null));
+      start = query.offset;
+      end=Math.min(start+query.limit,this.data.length);
+      tr = this._traverseDataRange(processRead.bind(null, this.__id,query, defer), start, end);
     }
+    if (q.isThenable(tr)) {
+      return tr.then(defer.resolve.bind(defer, null));
+    }
+    defer.resolve(null);
   };
-  MemoryStorageBase.prototype.updateFrom = function(countobj,record,updateitem,updateitemname){
+  MemoryStorageBase.prototype.onUpsertSucceeded = function(defer,createdrecord){
+    if (this.events) {
+      this.events.fireNewRecord(createdrecord);
+    }
+    defer.resolve({upserted:1});
+  };
+  MemoryStorageBase.prototype.processUpsert = function(defer,updateobj,filter,datahash,options){
+    var d = q.defer(), upserthash;
+    upserthash = this.__record.filterObject(datahash);
+    mylib.filterUtils.amendToRecordFromExactFilter(upserthash, filter);
+    this.doCreate(upserthash,d);
+    d.promise.done(
+      this.onUpsertSucceeded.bind(this,defer),
+      defer.reject.bind(defer)
+    );
+  };
+  function updateFrom (countobj,record,updateitem,updateitemname){
     if(record.hasFieldNamed(updateitemname)){
       if(countobj.count<1){
         countobj.original = record.clone();
@@ -76,45 +83,72 @@ function createMemoryStorageBase (execlib, mylib) {
       record.set(updateitemname,updateitem);
     }
   }
-  MemoryStorageBase.prototype.onUpsertSucceeded = function(defer,createdrecord){
-    defer.resolve({upserted:1});
-  };
-  MemoryStorageBase.prototype.processUpsert = function(defer,countobj,filter,datahash,options){
-    var d = q.defer();
-    this.doCreate(datahash,d);
-    d.promise.done(
-      this.onUpsertSucceeded.bind(this,defer),
-      defer.reject.bind(defer)
-    );
-  };
-  MemoryStorageBase.prototype.processUpdate = function(defer,countobj,filter,datahash,options,record){
+  MemoryStorageBase.prototype.processUpdate = function(updateobj,filter,datahash,options,record,index){
+    var updatecountobj;
     if(filter.isOK(record)){
-      var updatecountobj = {count:0,original:null};
-      lib.traverse(datahash,this.updateFrom.bind(this,updatecountobj,record));
+      updatecountobj = {count:0,original:null};
+      lib.traverse(datahash,updateFrom.bind(null,updatecountobj,record));
       if(updatecountobj.count){
         if(!updatecountobj.original){
           throw "No original";
         }
-        if(this.events){
-          this.events.recordUpdated.fire(record/*.clone()*/,updatecountobj.original);
-        }
-        defer.notify([record, updatecountobj.original]);
-        countobj.count++;
+        updateobj.items.push({index: index, new:record, old:updatecountobj.original});
       }
+      updatecountobj = null;
+      record = null;
     }
-  }
+  };
   MemoryStorageBase.prototype.doUpdate = function(filter,datahash,options,defer){
+    var updateobj, travres;
     if(!this.data){
       defer.reject(new lib.Error('NO_DATA_IN_STORAGE'));
       return;
     }
-    var countobj = {count:0};
-    this._traverseData(this.processUpdate.bind(this,defer,countobj,filter,datahash,options));
-    if(countobj.count<1 && options && options.upsert){
-      this.processUpsert(defer,countobj,filter,datahash,options);
-    }else{
-      defer.resolve({updated:countobj.count});
+    updateobj = {items:[]};
+    travres = this._traverseData(this.processUpdate.bind(this,updateobj,filter,datahash,options));
+    if (travres && q.isThenable(travres)) {
+      travres.then(
+        this.checkUpdateTraversal.bind(this, filter, datahash, options, defer, updateobj),
+        defer.reject.bind(defer),
+        console.log.bind(console, 'updateTraversal')
+      );
+      return;
     }
+    this.checkUpdateTraversal(filter, datahash, options, defer, updateobj);
+  };
+  MemoryStorageBase.prototype.checkUpdateTraversal = function (filter, datahash, options, defer, updateobj) {
+    var promises, ret;
+    //console.log('checkUpdateTraversal', updateobj);
+    if(updateobj.items.length<1 && options && options.upsert){
+      this.processUpsert(defer,updateobj,filter,datahash,options);
+      return;
+    }
+    promises = updateobj.items.reduce(this._finalizeUpdateOnItem.bind(this, defer), []);
+    ret = promises.length>0 ? 
+      q.all(promises).then(
+        this.finalizeUpdate.bind(this, updateobj, defer)
+      )
+      :
+      this.finalizeUpdate(updateobj, defer);
+    updateobj = null;
+    defer = null;
+    return ret;
+  };
+  MemoryStorageBase.prototype.finalizeUpdate = function (updateobj, defer) {
+    defer.resolve({updated:updateobj.items.length});
+    defer = null;
+  };
+  MemoryStorageBase.prototype._finalizeUpdateOnItem = function (defer, result, item) {
+    var r = this.finalizeUpdateOnItem(item, defer);
+    if (q.isThenable(r)) {
+      result.push(r);
+    }
+    return result;
+  };
+  MemoryStorageBase.prototype.finalizeUpdateOnItem = function (item, defer) {
+    defer.notify([item.new, item.old]);
+    item = null;
+    defer = null;
   };
   MemoryStorageBase.prototype.processDelete = function(todelete,defer,filter,record,recordindex,records){
     if(filter.isOK(record)){
@@ -127,64 +161,52 @@ function createMemoryStorageBase (execlib, mylib) {
     }/*else{
       console.log('not deleting',record,'due to mismatch in',require('util').inspect(filter,{depth:null}));
     }*/
-  }
+  };
   MemoryStorageBase.prototype.doDelete = function(filter,defer){
+    var todelete, trr, ret;
     if (!this.data) {
       defer.resolve(0);
       return;
     }
-    var todelete = [], data = this.data;
-    this._traverseData(this.processDelete.bind(this,todelete,defer,filter));
-    todelete.forEach(this._removeDataAtIndex.bind(null, this.data));
+    todelete = [];
+    trr = this._traverseData(this.processDelete.bind(this,todelete,defer,filter));
+    filter = null;
+    ret = q.isThenable(trr) ?
+      trr.then(
+        this.onDeletionTraversal.bind(this, todelete, defer),
+        defer.reject.bind(defer)
+      )
+      :
+      this.onDeletionTraversal(todelete, defer);
+    todelete = null;
+    defer = null;
+    return ret;
+  };
+  MemoryStorageBase.prototype.onDeletionTraversal = function (todelete, defer) {
+    var promises, ret;
+    promises = todelete.reduce(this._removeDataAtIndex.bind(this), []);
+    ret = promises.length>0 ?
+      q.all(promises).then(
+        this.finalizeDelete.bind(this, todelete, defer),
+        defer.reject.bind(defer)
+      )
+      :
+      this.finalizeDelete(todelete, defer);
+    todelete = null;
+    defer = null;
+    return ret;
+  };
+  MemoryStorageBase.prototype._removeDataAtIndex = function (result, index) {
+    var r = this.removeDataAtIndex(index);
+    if (q.isThenable(r)) {
+      result.push(r);
+    }
+    return result;
+  };
+  MemoryStorageBase.prototype.finalizeDelete = function (todelete, defer) {
     defer.resolve(todelete.length);
-  };
-  MemoryStorageBase.prototype.recordViolatesSimplePrimaryKey = function (rec) {
-    var spk = this.__record.primaryKey, spv = rec.get(spk), affectedrecord;
-    if (this._traverseConditionally(function (record) {
-      if (record.get(spk) === spv) {
-        affectedrecord = record;
-        return true;
-      }
-    })) {
-      var e = new lib.Error('PRIMARY_KEY_VIOLATION');
-      e.affectedrecord = affectedrecord;
-      return e;
-    }
-  };
-  MemoryStorageBase.prototype.recordViolatesComplexPrimaryKey = function (rec) {
-    var pknames = this.__record.primaryKey,
-      missingpkvals = [],
-      pkvals = pknames.map(function (pkn) {
-        var ret = rec.get(pkn);
-        if (ret === null) {
-          missingpkvals.push(pkn);
-        }
-        return ret;
-      }),
-      e,
-      pkcount = pknames.length,
-      affectedrecord;
-    if (missingpkvals.length){
-      e = new lib.Error('MISSING_PRIMARY_KEY_SEGMENT','Complex primary key violated at certain segments');
-      e.missing = missingpkvals;
-      return e;
-    }
-    if (this._traverseConditionally(function (record) {
-      var matchcnt = 0;
-      pknames.forEach(function (pkn, pknind) {
-        if (record.get(pkn) === pkvals[pknind]){
-          matchcnt++;
-        }
-      });
-      if (matchcnt===pkcount) {
-        affectedrecord = record;
-        return true;
-      }
-    })) {
-      e = new lib.Error('PRIMARY_KEY_VIOLATION');
-      e.affectedrecord = affectedrecord;
-      return e;
-    }
+    todelete = null;
+    defer = null;
   };
   mylib.MemoryStorageBase = MemoryStorageBase;
 

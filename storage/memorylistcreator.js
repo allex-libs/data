@@ -27,10 +27,9 @@ function createMemoryStorage(execlib, mylib){
   MemoryListStorage.prototype._traverseDataRange = function (cb, start, endexclusive) {
     var cntobj = {cnt:0};
     this.data.traverse(rangeTraverser.bind(null, start, endexclusive, cb, cntobj));
-    return q(true);
   };
-  MemoryListStorage.prototype._removeDataAtIndex = function (data, index) {
-    data.removeOne(index);
+  MemoryListStorage.prototype.removeDataAtIndex = function (index) {
+    this.data.removeOne(index);
   };
   MemoryListStorage.prototype._traverseConditionally = function (cb) {
     return this.data.traverseConditionally(cb);

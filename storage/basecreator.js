@@ -67,7 +67,7 @@ function createStorageBase(execlib, mylib){
     }
   };
   StorageBaseEventing.prototype.fireUpdated = function(filter,datahash,updateresult){
-    if(this.updated && (updateresult.updated || updateresult.upserted)){
+    if(this.updated && updateresult && (updateresult.updated || updateresult.upserted)){
       this.updated.fire(filter,datahash,updateresult);
     }
   };
@@ -248,6 +248,12 @@ function createStorageBase(execlib, mylib){
     }
     this.storage.doUpdate(filter,datahash,options,this);
   };
+  Updater.prototype.notify = function (ntf) {
+    if(this.storage && this.storage.events){
+      this.storage.events.recordUpdated.fire(ntf[0], ntf[1]);
+    }
+    StorageJob.prototype.notify.call(this, ntf);
+  };
 
   function Deleter (storage, filter, defer) {
     StorageJob.call(this, storage, defer);
@@ -294,7 +300,9 @@ function createStorageBase(execlib, mylib){
       this.jobs.destroy();
     }
     this.jobs = null;
-    this.__record.destroy();
+    if (this.__record) {
+      this.__record.destroy();
+    }
     this.__record = null;
   };
   StorageBase.prototype.create = function(datahash){
@@ -361,7 +369,6 @@ function createStorageBase(execlib, mylib){
 
   StorageBase.prototype.aggregate = function (aggregation_descriptor) {
     var d = q.defer();
-    //console.log('stigao sam do aggregate-a na storage-u ... aj sad uradi nesto sa tim ...', aggregation_descriptor);
     qlib.promise2defer (this.doAggregate(aggregation_descriptor), d);
     return d.promise;
   };

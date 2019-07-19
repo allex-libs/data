@@ -3,6 +3,7 @@ function createDataManager(execlib, mylib){
   var lib = execlib.lib,
     DataSource = mylib.DataSource,
     filterFactory = mylib.filterFactory,
+    QueryBase = mylib.QueryBase,
     qlib = lib.qlib;
 
   var __id = 0;
@@ -14,10 +15,13 @@ function createDataManager(execlib, mylib){
   }
   lib.inherit(DataManager,DataSource);
   DataManager.prototype.destroy = function(){
-    this.filter.destroy();
+    if (this.filter) {
+      this.filter.destroy();
+    }
     this.filter = null;
-    console.log('destroying storage');
-    this.storage.destroy();
+    if (this.storage) {
+      this.storage.destroy();
+    }
     this.storage = null;
   };
   DataManager.prototype.onStorageError = function(defer,reason){
@@ -34,6 +38,13 @@ function createDataManager(execlib, mylib){
       defer.reject(new lib.Error('MANAGER_ALREADY_DESTROYED', 'DataManager is destroyed already'));
       return defer.promise;
     }
+    this.checkPrimaryKeyViolation(datahash).then(
+      this.createOnStorage.bind(this, datahash, defer),
+      defer.reject.bind(defer)
+    );
+    return defer.promise;
+  }
+  DataManager.prototype.createOnStorage = function (datahash, defer) {
     this.storage.create(datahash).done(
       this.doNativeCreate.bind(this,defer),
       this.onStorageError.bind(this,defer)
@@ -155,6 +166,99 @@ function createDataManager(execlib, mylib){
     qlib.promise2defer (this.storage.aggregate (aggregation_descriptor), defer);
     return defer.promise;
   };
+
+  //PK checks follow
+  function r1appender (recs, item) {
+    if (lib.isArray(item) && item[0] === 'r1') {
+      recs.push(item[2]);
+    }
+  }
+  DataManager.prototype.checkPrimaryKeyViolation = function (datahash) {
+    var d, qry, recs, ret;
+    if (!(this.storage && this.storage.__record)) {
+      return q(true);
+    }
+    if (this.storage.__record.primaryKey) {
+      d = q.defer();
+      recs = [];
+      qry = new PKQuery(this.storage.__record.primaryKey, datahash);
+      this.read(qry, d);
+      ret = d.promise.then(
+        this.onPKCheckRead.bind(this, qry, recs),
+        null,
+        r1appender.bind(null, recs)
+      ); 
+      recs = null;
+      return ret;
+    }
+    return q(true);
+  };
+
+  DataManager.prototype.onPKCheckRead = function (qry, recs, ignore) {
+    var ret;
+    qry.destroy();
+    qry = null;
+    ret = (lib.isArray(recs) && recs.length>0) ? q.reject(new Error('PRIMARY_KEY_VIOLATION')) : q(true);
+    recs = null;
+    return ret;
+  };
+
+  function addField (fields, pkname) {
+    fields.push({name: pkname});
+  }
+  function recorddesc (pk, datahash) {
+    var ret = {
+      fields: []
+    }, _f = ret.fields;
+    if (lib.isArray(pk)) {
+      pk.forEach(addField.bind(null, _f));
+      _f = null;
+      return ret;
+    }
+    addField(ret.fields, pk);
+    return ret;
+  }
+  function visiblefields (pk, datahash) {
+    if (lib.isString(pk)) {
+      return [pk];
+    }
+    return pk.slice();
+  }
+  function eqfilterproducer (datahash, pkitem) {
+    return {
+      op: 'eq',
+      field: pkitem,
+      value: datahash[pkitem]
+    }
+  };
+  function filterdesc (pk, datahash) {
+    var ret;
+    if (lib.isArray(pk)) {
+      return {
+        op: 'and',
+        fields: pk.map(eqfilterproducer.bind(null, datahash))
+      };
+    }
+    return eqfilterproducer(datahash, pk);
+  };
+  function PKQuery (pk, datahash) {
+    QueryBase.call(this, recorddesc(pk, datahash), visiblefields(pk, datahash));
+    this.pkfilter = mylib.filterFactory.createFromDescriptor(filterdesc(pk, datahash));
+  }
+  lib.inherit(PKQuery, QueryBase);
+  PKQuery.prototype.destroy = function () {
+    if (this.pkfilter) {
+      this.pkfilter.destroy();
+    }
+    QueryBase.prototype.destroy.call(this);
+  };
+  PKQuery.prototype.filter = function () {
+    return this.pkfilter;
+  };
+  PKQuery.prototype.limit = lib.dummyFunc;
+  PKQuery.prototype.offset = lib.dummyFunc;
+  //PK checks end
+
   mylib.DataManager = DataManager;
 }
 

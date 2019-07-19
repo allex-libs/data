@@ -17,6 +17,24 @@ function createDataUtils(execlib, mylib){
   }
 
   mylib.inherit = inherit;
+
+  function isFilterExact (filter) {
+    if (filter instanceof mylib.filterFactory.get('eq')) {
+      return true;
+    }
+    return false;
+  }
+
+  function amendToRecordFromExactFilter (record, filter) {
+    if (isFilterExact(filter)) {
+      record.set(filter.fieldname, filter.fieldvalue);
+    }
+  }
+
+  mylib.filterUtils = {
+    isExact: isFilterExact,
+    amendToRecordFromExactFilter: amendToRecordFromExactFilter
+  };
 }
 
 module.exports = createDataUtils;

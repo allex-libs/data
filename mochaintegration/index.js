@@ -1,0 +1,2 @@
+setGlobal('BasicStorageTest', require('./basicstoragetest'));
+

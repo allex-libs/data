@@ -4,6 +4,7 @@ function createDataManager(execlib, mylib){
     DataSource = mylib.DataSource,
     filterFactory = mylib.filterFactory,
     QueryBase = mylib.QueryBase,
+    q = lib.q,
     qlib = lib.qlib;
 
   var __id = 0;

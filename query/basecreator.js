@@ -39,7 +39,6 @@ function createQueryBase(execlib, mylib){
     var ook = original && this.isOK(original),
         _nok = this.isOK(_new),
         uf;
-    console.log('processUpdateExact', original, _new, ook, _nok);
     if(ook){
       uf = this.record.updatingFilterDescriptorFor(original);
       if(_nok){

@@ -237,7 +237,7 @@ function createDataManager(execlib, mylib){
     if (lib.isArray(pk)) {
       return {
         op: 'and',
-        fields: pk.map(eqfilterproducer.bind(null, datahash))
+        filters: pk.map(eqfilterproducer.bind(null, datahash))
       };
     }
     return eqfilterproducer(datahash, pk);

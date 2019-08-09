@@ -22,12 +22,22 @@ function createDataUtils(execlib, mylib){
     if (filter instanceof mylib.filterFactory.get('eq')) {
       return true;
     }
+    if (filter instanceof mylib.filterFactory.get('and')) {
+      return filter.filters.every(isFilterExact);
+    }
     return false;
   }
 
   function amendToRecordFromExactFilter (record, filter) {
-    if (isFilterExact(filter)) {
+    var _r;
+    if (filter instanceof mylib.filterFactory.get('eq')) {
       record.set(filter.fieldname, filter.fieldvalue);
+      return;
+    }
+    if (filter instanceof mylib.filterFactory.get('and')) {
+      _r = record;
+      filter.filters.forEach(amendToRecordFromExactFilter.bind(null, _r));
+      _r = null;
     }
   }
 

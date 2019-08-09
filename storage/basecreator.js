@@ -194,6 +194,9 @@ function createStorageBase(execlib, mylib){
       return;
     }
     ret = d.promise;
+    if (dndatahash && !!dndatahash.instancename) {
+      console.log('Creator createOne?', dndatahash);
+    }
     if(this.storage.events){
       d.promise.then(this.storage.events.fireNewRecord.bind(this.storage.events));
     }

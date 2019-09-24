@@ -118,28 +118,39 @@ function createRecordUtils(execlib,suite){
       }
     });
   }
-  var sm = execlib.execSuite.registry.getClientSide('.');
-  if (!sm) {
-    lib.runNext(createRecordUtils.bind(null, execlib, suite));
-    return;
-  }
   suite.duplicateFieldValueInArrayOfHashes = duplicateFieldValueInArrayOfHashes;
   suite.inherit = inherit;
-  var sinkPreInheritProc = sinkInheritProcCreator('DataSink',sm.get('user').inherit); 
-  function sinkInheritProc(childCtor,methodDescriptors,visiblefieldsarray,classStorageDescriptor){
-    sinkPreInheritProc.call(this,childCtor,methodDescriptors,visiblefieldsarray);
-    var recordDescriptor = {};
-    lib.traverseShallow(this.prototype.recordDescriptor,copierWOFields.bind(null,recordDescriptor));
-    var fields = [];
-    if(this.prototype.recordDescriptor){
-      copyNamedItems(this.prototype.recordDescriptor.fields,fields,childCtor.prototype.visibleFields);
-    }
-    lib.traverseShallow(classStorageDescriptor.record, copierWOFields.bind(null,recordDescriptor));
-    copyNamedItems(classStorageDescriptor.record.fields,fields,childCtor.prototype.visibleFields);
-    recordDescriptor.fields = fields;
-    childCtor.prototype.recordDescriptor = recordDescriptor;
+
+  execlib.execSuite.registry.clientSides.waitFor('.').then(
+    doDaServerSide.bind(null, suite, sinkInheritProcCreator),
+    baseWaiterFailer
+  );
+
+  function baseWaiterFailer (reason) {
+    console.error('Waiting for the client side of the base Service failed');
+    console.error(reason);
+    process.exit(1);
   }
-  suite.sinkInheritProc = sinkInheritProc;
+
+  function doDaServerSide (_suite, _sinkInheritProcCreator, sm) {
+    var sinkPreInheritProc = _sinkInheritProcCreator('DataSink',sm.get('user').inherit); 
+    _sinkInheritProcCreator = null;
+    function sinkInheritProc(childCtor,methodDescriptors,visiblefieldsarray,classStorageDescriptor){
+      sinkPreInheritProc.call(this,childCtor,methodDescriptors,visiblefieldsarray);
+      var recordDescriptor = {};
+      lib.traverseShallow(this.prototype.recordDescriptor,copierWOFields.bind(null,recordDescriptor));
+      var fields = [];
+      if(this.prototype.recordDescriptor){
+        copyNamedItems(this.prototype.recordDescriptor.fields,fields,childCtor.prototype.visibleFields);
+      }
+      lib.traverseShallow(classStorageDescriptor.record, copierWOFields.bind(null,recordDescriptor));
+      copyNamedItems(classStorageDescriptor.record.fields,fields,childCtor.prototype.visibleFields);
+      recordDescriptor.fields = fields;
+      childCtor.prototype.recordDescriptor = recordDescriptor;
+    }
+    _suite.sinkInheritProc = sinkInheritProc;
+    _suite = null;
+  }
 }
 
 module.exports = createRecordUtils;

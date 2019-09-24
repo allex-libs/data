@@ -168,13 +168,16 @@ function createRecord(execlib, outerlib, mylib){
     return new StateStreamFilter(storage,record,this);
   };
   Record.prototype.updatingFilterDescriptorFor = function(datahash){
+    var ret;
     if(this.primaryKey){
       if(lib.isArray(this.primaryKey)){
-        var ret = {op: 'and', filters : this.primaryKey.map(function(pkfield){
+        ret = {op: 'and', filters : this.primaryKey.map(function(pkfield){
           return {
             op: 'eq', field: pkfield, value:datahash[pkfield]
           };
         })};
+        datahash = null;
+        return ret;
       }else{
         return {op:'eq',field:this.primaryKey,value:datahash[this.primaryKey]};
       }

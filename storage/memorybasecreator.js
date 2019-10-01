@@ -90,7 +90,7 @@ function createMemoryStorageBase (execlib, mylib) {
       lib.traverse(datahash,updateFrom.bind(null,updatecountobj,record));
       if(updatecountobj.count){
         if(!updatecountobj.original){
-          throw "No original";
+          throw new Error("No original");
         }
         updateobj.items.push({index: index, new:record, old:updatecountobj.original});
       }

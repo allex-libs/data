@@ -40,10 +40,10 @@ function instantiate (recorddescriptor, prophash) {
   setGlobal('Instantiator', new InstantiatorKlass());
   return Instantiator.instantiateFrom(recorddescriptor, prophash);
 }
-function goinstantiate (prophashfunc, recorddescriptor) {
+function instantiateDataManager (prophashfunc, recorddescriptor) {
   var ppres;
   if (!(lib.isVal(recorddescriptor) && 'fields' in recorddescriptor)) {
-    throw new Error ('goinstantiate needs a recorddescriptor as its second parameter');
+    throw new Error ('instantiateDataManager needs a recorddescriptor as its second parameter');
   }
   if (lib.isFunction(prophashfunc)) {
     ppres = prophashfunc();
@@ -58,4 +58,4 @@ function goinstantiate (prophashfunc, recorddescriptor) {
   return instantiate(recorddescriptor, prophashfunc);
 }
 
-setGlobal('goinstantiate', goinstantiate);
+setGlobal('instantiateDataManager', instantiateDataManager);

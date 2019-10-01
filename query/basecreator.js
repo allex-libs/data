@@ -12,13 +12,13 @@ function createQueryBase(execlib, mylib){
     this.record = null;
   };
   QueryBase.prototype.filter = function(){
-    throw "Generic QueryBase does not implement the filter method";
+    throw new Error("Generic QueryBase does not implement the filter method");
   };
   QueryBase.prototype.limit = function(){
-    throw "Generic QueryBase does not implement the limit method";
+    throw new Error("Generic QueryBase does not implement the limit method");
   }
   QueryBase.prototype.offset = function(){
-    throw "Generic QueryBase does not implement the offset method";
+    throw new Error("Generic QueryBase does not implement the offset method");
   };
   QueryBase.prototype.isEmpty = function(){
     return this.limit===0 || this.record.isEmpty();

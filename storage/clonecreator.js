@@ -6,7 +6,7 @@ function createCloneStorage(execlib, mylib){
     this.original = options.original;
     this.record = this.original.record;
     if(!(this.original instanceof StorageBase)){
-      throw "CloneStorage cannot clone a non-StorageBase instance";
+      throw new Error("CloneStorage cannot clone a non-StorageBase instance");
     }
   }
   execlib.lib.inherit(CloneStorage,StorageBase);

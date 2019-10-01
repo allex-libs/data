@@ -44,7 +44,7 @@ function createRecordUtils(execlib,suite){
         invalid = checkIfInvalidRd(fn,rd);
       if(invalid){
         continue;
-        //throw Error((rd ? JSON.stringify(rd) : rd) + " is not a valid record descriptor: "+invalid);
+        //throw new Error((rd ? JSON.stringify(rd) : rd) + " is not a valid record descriptor: "+invalid);
       }
       lib.traverse(rd,copyExceptFields.bind(null,result));
       result.fields.push.apply(result.fields,rd.fields);

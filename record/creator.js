@@ -37,7 +37,8 @@ function createRecord(execlib, outerlib, mylib){
   function Field(prophash){
     this.name = prophash.name;
     if(!this.name){
-      throw "Field needs a name";
+      console.error(prophash);
+      throw new Error("Field needs a name");
     }
     this.value = prophash.value;
     this.default = new DefaultHandler(prophash.default);

@@ -66,7 +66,7 @@ function createDataCoder(execlib){
     return ['ue', updateexactobject[0], updateexactobject[1]];
     /*
     if(!('o' in updateexactobject && 'n' in updateexactobject)){
-      throw "Bad updateExact";
+      throw new Error("Bad updateExact");
     }
     return {
       o: 'ue',

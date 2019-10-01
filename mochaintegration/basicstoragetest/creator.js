@@ -11,7 +11,7 @@ function basicTestSequence (storageklassfunc, prophashfunc, recorddescriptor, in
   });
   it('Instantiate a Spawning Manager', function () {
     console.log('StorageKlass', StorageKlass.name);
-    return setGlobal('Manager', goinstantiate(prophashfunc, recorddescriptor));
+    return setGlobal('Manager', instantiateDataManager(prophashfunc, recorddescriptor));
   });
   it('Insert one', function () {
     return doCreate(Manager, initrecord);

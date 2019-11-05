@@ -17,6 +17,8 @@ function createMaterializeQueryTask(execlib, mylib){
     this.singleshot = prophash.singleshot;
     this.continuous = prophash.continuous;
     this.visiblefields = prophash.visiblefields;
+    this.limit = prophash.limit;
+    this.offset = prophash.offset;
     this.data = prophash.data;
     this.onInitiated = prophash.onInitiated;
     this.onRecordCreation = prophash.onRecordCreation;
@@ -73,6 +75,8 @@ function createMaterializeQueryTask(execlib, mylib){
     this.onNewRecord = null;
     this.onRecordCreation = null;
     this.onInitiated = null;
+    this.offset = null;
+    this.limit = null;
     this.data = null;
     this.visiblefields = null;
     this.continuous = null;
@@ -81,6 +85,9 @@ function createMaterializeQueryTask(execlib, mylib){
     this.sink = null;
     if(this.storage){
       this.storage.destroy();
+    }
+    if (this.decoder) {
+      this.decoder.destroy();
     }
     this.decoder = null;
     this.storage = null;
@@ -113,13 +120,27 @@ function createMaterializeQueryTask(execlib, mylib){
     if(this.onRecordDeletion){
       this.recordDeletedListener = this.storage.events.recordDeleted.attach(this.onRecordDeletion);
     }
+    /*
     if (!this.continuous) {
       console.log('materializeQuery is not continuous!');
     }
-    this.sink.sessionCall('query', {singleshot: this.singleshot, continuous: this.continuous, filter: this.filter||'*', visiblefields: this.visiblefields}).then(
-      this.destroy.bind(this),
-      this.destroy.bind(this),
+    */
+    this.sink.sessionCall('query', {singleshot: this.singleshot, continuous: this.continuous, filter: this.filter||'*', visiblefields: this.visiblefields, limit: this.limit, offset: this.offset}).then(
+      /*
+      */
+      this.onQueryDone.bind(this),
+      this.onQueryDone.bind(this),
       this.decoder.onStream.bind(this.decoder)
+    );
+  };
+  MaterializeQueryTask.prototype.onQueryDone = function () {
+    if (!this.storage) {
+      this.destroy();
+      return;
+    }
+    this.storage.nullOp().then(
+      this.destroy.bind(this),
+      this.destroy.bind(this)
     );
   };
   MaterializeQueryTask.prototype.compulsoryConstructionProperties = ['data','sink'];

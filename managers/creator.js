@@ -26,7 +26,7 @@ function createDataManager(execlib, mylib){
     this.storage = null;
   };
   DataManager.prototype.onStorageError = function(defer,reason){
-    console.log('DataManager has no idea about what to do with',reason,'(onStorageError)');
+    //console.log('DataManager has no idea about what to do with',reason,'(onStorageError)');
     defer.reject(reason);
   };
   DataManager.prototype.doNativeCreate = function(defer,datahash){

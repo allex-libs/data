@@ -102,16 +102,20 @@ function createSpawningDataManager(execlib, mylib) {
     }
   };
 
-  function RunningQuery(recorddescriptor, filterdescriptor, visiblefields) {
+  //function RunningQuery(recorddescriptor, filterdescriptor, visiblefields) {
+  function RunningQuery(recorddescriptor, queryprophash) {
     ComplexDestroyable.call(this);
-    QueryBase.call(this, recorddescriptor, visiblefields);
-    //console.log('new RunningQuery', this.record);
+    QueryBase.call(this, recorddescriptor, queryprophash.visiblefields);
     this.distributor = new StreamDistributor();
-    this._filter = filterFactory.createFromDescriptor(filterdescriptor);
+    this._filter = filterFactory.createFromDescriptor(queryprophash.filter);
+    this._limit = queryprophash.limit;
+    this._offset = queryprophash.offset;
   }
   lib.inherit(RunningQuery, ComplexDestroyable);
   lib.inheritMethods(RunningQuery, QueryBase, /*'limit','offset',*/'isEmpty','isLimited','isOffset','isOK','processUpdateExact');
   RunningQuery.prototype.__cleanUp = function () {
+    this._offset = null;
+    this._limit = null;
     if (this._filter) {
       this._filter.destroy();
     }
@@ -140,8 +144,16 @@ function createSpawningDataManager(execlib, mylib) {
   RunningQuery.prototype.filter = function(){
     return this._filter;
   };
+  RunningQuery.prototype.limit = function () {
+    return this._limit;
+  };
+  RunningQuery.prototype.offset = function () {
+    return this._offset;
+  };
+  /*
   RunningQuery.prototype.limit = lib.dummyFunc;
   RunningQuery.prototype.offset = lib.dummyFunc;
+  */
   RunningQuery.prototype.addRunner = function (manager, runner) {
     if (!runner) {
       return;
@@ -177,6 +189,9 @@ function createSpawningDataManager(execlib, mylib) {
       return;
     }
     if (!this.distributor) {
+      runner.resolve(true);
+      eventq.destroy();
+      eventq = null;
       return;
     }
     this.distributor.attach(runner);
@@ -229,7 +244,8 @@ function createSpawningDataManager(execlib, mylib) {
       qr;
     //console.log(this.id, 'reading', this.storage.data, 'on', queryprophash.filter);
     if (!rq) {
-      rq = new RunningQuery(this.recorddescriptor, queryprophash.filter, queryprophash.visiblefields);
+      //rq = new RunningQuery(this.recorddescriptor, queryprophash.filter, queryprophash.visiblefields);
+      rq = new RunningQuery(this.recorddescriptor, queryprophash);
       this.runningQueries.registerDestroyable(rqidentifier, rq);
       this.distributor.attach(rq);
     }

@@ -15,9 +15,13 @@ function createReadFromDataSink(execlib) {
     this.errorcb = prophash.errorcb;
     this.singleshot = prophash.singleshot;
     this.continuous = prophash.continuous;
+    this.limit = prophash.limit;
+    this.offset = prophash.offset;
   }
   lib.inherit(ReadFromDataSink, SinkTask);
   ReadFromDataSink.prototype.__cleanUp = function () {
+    this.offset = null;
+    this.limit = null;
     this.continuous = null;
     this.singleshot = null;
     this.errorcb = null;
@@ -34,6 +38,8 @@ function createReadFromDataSink(execlib) {
       continuous: this.continuous,
       filter: this.filter,
       visiblefields: this.visiblefields,
+      limit: this.limit,
+      offset: this.offset,
       cb: this.cb,
       errorcb: this.errorcb
     });

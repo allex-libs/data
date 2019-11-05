@@ -50,7 +50,6 @@ function createReadFromSinkProc (execlib, prophash) {
   }
 
   function onRecord (datahash) {
-    //console.log('onRecord', datahash);
     if (prophash && prophash.singleshot) {
       if (data.length) {
         if ('function' === typeof data.destroy) {
@@ -71,10 +70,13 @@ function createReadFromSinkProc (execlib, prophash) {
 
   task = taskRegistry.run('materializeQuery', {
     sink: prophash.sink,
-    continuous: true,
+    continuous: prophash.continuous, //true,
+    singleshot: prophash.singleshot,
     data: data,
     filter: prophash.filter,
     visiblefields: prophash.visiblefields,
+    limit: prophash.limit,
+    offset: prophash.offset,
     onRecordCreation: onRecord,
     onInitiated: onInitiated
   });

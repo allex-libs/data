@@ -79,6 +79,19 @@ function createStorageBase(execlib, mylib){
 
 
   //JOBS
+  function NullOp (defer) {
+    JobBase.call(this, defer);
+  }
+  lib.inherit(NullOp, JobBase);
+  NullOp.prototype.go = function () {
+    var ok = this.okToGo();
+    if (!ok.ok) {
+      return ok.val;
+    }
+    this.resolve(true);
+    return ok.val;
+  };
+
   function StorageJob (storage, defer) {
     JobBase.call(this, defer);
     this.storage = storage;
@@ -307,6 +320,9 @@ function createStorageBase(execlib, mylib){
       this.__record.destroy();
     }
     this.__record = null;
+  };
+  StorageBase.prototype.nullOp = function () {
+    return this.jobs.run('op', new NullOp());
   };
   StorageBase.prototype.create = function(datahash){
     var lastpendingjob, job, ret;

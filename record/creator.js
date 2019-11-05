@@ -113,14 +113,24 @@ function createRecord(execlib, outerlib, mylib){
   };
   Record.prototype.createTemplateHash = function () {
     var ret;
-    eval (this.templateObj.template);
+    try {
+      eval (this.templateObj.template);
+    } catch(e) {
+      return {};
+    }
     return ret;
   };
   function hashFiller(prophash, obj, field) {
     prophash[field.name] = field.valueFor(obj[field.name]);
   }
   Record.prototype.filterHash = function(obj){
-    var prophash = this.createTemplateHash(), fs = this.fields, l=fs.length, i, f, fn;//{};
+    var prophash, fs, l, i, f, fn;//{};
+    if (!this.fields) {
+      return {};
+    }
+    prophash = this.createTemplateHash();
+    fs = this.fields;
+    l=fs.length;
     //this.fields.forEach(hashFiller.bind(null, prophash, obj));
     for(i=0; i<l; i++) {
       f = fs[i];

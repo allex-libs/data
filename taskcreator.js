@@ -1,5 +1,6 @@
 function createTasks (execlib, mylib) {
   'use strict';
+  var FromDataSinkBaseTask = require('./tasks/fromdatasinkbasecreator')(execlib);
   return [{
     name: 'materializeQuery',
     klass: require('./tasks/materializeQuery')(execlib, mylib)
@@ -8,10 +9,10 @@ function createTasks (execlib, mylib) {
     klass: require('./tasks/forwardData')(execlib, mylib)
   },{
     name: 'readFromDataSink',
-    klass: require('./tasks/readFromDataSink')(execlib)
+    klass: require('./tasks/readFromDataSink')(execlib, FromDataSinkBaseTask)
   },{
     name: 'streamFromDataSink',
-    klass: require('./tasks/streamFromDataSink')(execlib, mylib)
+    klass: require('./tasks/streamFromDataSink')(execlib, FromDataSinkBaseTask)
   },{
     name: 'joinFromDataSinks',
     klass: require('./tasks/joinFromDataSinks')(execlib)

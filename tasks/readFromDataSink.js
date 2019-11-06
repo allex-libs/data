@@ -1,49 +1,48 @@
-function createReadFromDataSink(execlib) {
+function createReadFromDataSink(execlib, FromDataSinkBase) {
   'use strict';
   var lib = execlib.lib,
-    q = lib.q,
-    execSuite = execlib.execSuite,
-    SinkTask = execSuite.SinkTask,
-    readFromSinkProc = require('./proc/readFromSink').bind(null, execlib);
+    q = lib.q;
 
   function ReadFromDataSink(prophash) {
-    SinkTask.call(this,prophash);
-    this.sink = prophash.sink;
-    this.filter = prophash.filter;
-    this.visiblefields = prophash.visiblefields;
+    if (prophash && prophash.continuous) {
+      console.warn('The "continuous" parameter is not supported by', this.constructor.name, 'any more, it is assumed to be "false"');
+    }
+    FromDataSinkBase.call(this,prophash);
     this.cb = prophash.cb;
     this.errorcb = prophash.errorcb;
     this.singleshot = prophash.singleshot;
-    this.continuous = prophash.continuous;
-    this.limit = prophash.limit;
-    this.offset = prophash.offset;
+    this.data = [];
+    if (this.singleshot) {
+      this.limit = 1;
+    }
   }
-  lib.inherit(ReadFromDataSink, SinkTask);
+  lib.inherit(ReadFromDataSink, FromDataSinkBase);
   ReadFromDataSink.prototype.__cleanUp = function () {
-    this.offset = null;
-    this.limit = null;
-    this.continuous = null;
+    this.data = null;
     this.singleshot = null;
     this.errorcb = null;
     this.cb = null;
-    this.visiblefields = null;
-    this.filter = null;
-    this.sink = null;
-    SinkTask.prototype.__cleanUp.call(this);
+    FromDataSinkBase.prototype.__cleanUp.call(this);
   };
-  ReadFromDataSink.prototype.go = function () {
-    readFromSinkProc({
-      sink: this.sink,
-      singleshot: this.singleshot,
-      continuous: this.continuous,
-      filter: this.filter,
-      visiblefields: this.visiblefields,
-      limit: this.limit,
-      offset: this.offset,
-      cb: this.cb,
-      errorcb: this.errorcb
-    });
-    this.destroy();
+  ReadFromDataSink.prototype.checkBeforeGo = function () {
+    if (!this.cb) {
+      throw new lib.Error('NO_CB_TO_REPORT_TO', 'Property hash provided to this instance of '+this.constructor.name+' has no cb to report data');
+    }
+  };
+  ReadFromDataSink.prototype.handleSuccess = function () {
+    if (this.cb) {
+      this.cb(this.singleshot ? (this.data[0] || null) : this.data);
+    }
+  };
+  ReadFromDataSink.prototype.handleError = function (reason) {
+    if (this.errorcb) {
+      this.errorcb(reason);
+    }
+  };
+  ReadFromDataSink.prototype.handleRecord = function (record) {
+    if (this.data) {
+      this.data.push(record);
+    }
   };
   ReadFromDataSink.prototype.compulsoryConstructionProperties = ['sink','cb'];
 

@@ -49,24 +49,43 @@ function createDataDecoder(execlib, mylib){
     }
   };
   Decoder.prototype.setID = function (id) {
+    if (!this.storable) {
+      return;
+    }
     this.queryID = id;
     return lib.q(true);
   };
   Decoder.prototype.beginRead = function(itemdata){
+    if (!this.storable) {
+      return;
+    }
     return this.storable.beginInit(itemdata);
   };
   Decoder.prototype.endRead = function(itemdata){
+    if (!this.storable) {
+      return;
+    }
     this.storable.endInit(itemdata);
     return lib.q(true);
   };
   Decoder.prototype.readOne = function(itemdata){
+    if (!this.storable) {
+      return;
+    }
     return this.storable.create(itemdata);
   };
   Decoder.prototype.create = function(itemdata){
+    if (!this.storable) {
+      return;
+    }
     return this.storable.create(itemdata);
   };
   Decoder.prototype.delete = function(itemdata){
-    var f = filterFactory.createFromDescriptor(itemdata);
+    var f;
+    if (!this.storable) {
+      return;
+    }
+    f = filterFactory.createFromDescriptor(itemdata);
     if(!f){
       console.error('NO FILTER FOR',itemdata);
       return lib.q(true);
@@ -76,11 +95,19 @@ function createDataDecoder(execlib, mylib){
     }
   };
   Decoder.prototype.updateExact = function(newitem, olditem){
-    var f = filterFactory.createFromDescriptor({op:'hash',d:olditem});
+    var f;
+    if (!this.storable) {
+      return;
+    }
+    f = filterFactory.createFromDescriptor({op:'hash',d:olditem});
     return this.storable.update(f,newitem);
   };
   Decoder.prototype.update = function(filter, datahash){
-    var f = filterFactory.createFromDescriptor(filter);
+    var f;
+    if (!this.storable) {
+      return;
+    }
+    f = filterFactory.createFromDescriptor(filter);
     return this.storable.update(f,datahash);
   };
   return Decoder;

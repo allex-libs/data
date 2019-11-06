@@ -1,73 +1,39 @@
-function createStreamFromDataSink(execlib, mylib) {
+function createStreamFromDataSink(execlib, FromDataSinkBase) {
   'use strict';
   var lib = execlib.lib,
-    q = lib.q,
-    execSuite = execlib.execSuite,
-    SinkTask = execSuite.SinkTask,
-    DataDecoder = mylib.DataDecoder;
+    q = lib.q;
 
   function StreamFromDataSink(prophash) {
-    console.error('StreamFromDataSink is obsolete!');
-    console.error("Use datasink.call('query', {continuous: true/false, singleshot: true/false, filter: <filterdescriptor>}");
-    process.exit(0);
-    return;
-    SinkTask.call(this,prophash);
-    this.sink = prophash.sink;
-    this.filter = prophash.filter;
+    FromDataSinkBase.call(this,prophash);
     this.defer = prophash.defer;
-    this.subsink = null;
-    this.subSinkDestroyedListener = null;
   }
-  lib.inherit(StreamFromDataSink, SinkTask);
+  lib.inherit(StreamFromDataSink, FromDataSinkBase);
   StreamFromDataSink.prototype.__cleanUp = function () {
-    if (this.subSinkDestroyedListener) {
-      this.subSinkDestroyedListener.destroy();
-    }
-    this.subSinkDestroyedListener = null;
-    if (this.subsink) {
-      this.subsink.destroy();
-    }
-    this.subsink = null;
     this.defer = null;
-    this.filter = null;
-    this.sink = null;
-    SinkTask.prototype.__cleanUp.call(this);
+    FromDataSinkBase.prototype.__cleanUp.call(this);
   };
-  StreamFromDataSink.prototype.go = function () {
-    this.sink.subConnect('.', {name:'-', role: 'user', filter: this.filter}).done(
-      this.onSuccess.bind(this),
-      this.onFail.bind(this)
-    );
-  };
-  StreamFromDataSink.prototype.onSuccess = function (sink) {
-    if(!sink){
-      this.defer.reject(new lib.Error('NO_SINK'));
-      lib.runNext(this.destroy.bind(this));
-      return;
+  StreamFromDataSink.prototype.checkBeforeGo = function () {
+    if (!(this.defer &&
+      lib.isFunction(this.defer.resolve) &&
+      lib.isFunction(this.defer.reject) &&
+      lib.isFunction(this.defer.notify))) {
+      throw new lib.Error('NO_DEFER_TO_REPORT_TO', 'Property hash provided to this instance of '+this.constructor.name+' has no defer to report data');
     }
-    if(!sink.recordDescriptor){
-      console.error('no recordDescriptor on Sink', sink.modulename, sink.role);
-      return;
+  };
+  StreamFromDataSink.prototype.handleSuccess = function () {
+    if (this.defer) {
+      this.defer.resolve(true);
     }
-    this.subsink = sink;
-    this.subSinkDestroyedListener = sink.destroyed.attach(this.destroy.bind(this));
-    sink.consumeChannel('d', new DataDecoder(this));
   };
-  StreamFromDataSink.prototype.onFail = function (reason) {
-    this.defer.reject(reason);
-    lib.runNext(this.destroy.bind(this));
+  StreamFromDataSink.prototype.handleError = function (reason) {
+    if (this.defer) {
+      this.defer.reject(reason);
+    }
   };
-  StreamFromDataSink.prototype.beginInit = function () {
-    return q(true);
-  };
-  StreamFromDataSink.prototype.endInit = function () {
-    this.defer.resolve(true);
-    lib.runNext(this.destroy.bind(this));
-    return q(true);
-  };
-  StreamFromDataSink.prototype.create = function (datahash) {
-    this.defer.notify(datahash);
-    return q(true);
+  StreamFromDataSink.prototype.handleRecord = function (record) {
+    if (this.defer) {
+      this.defer.notify(record);
+    }
   };
   StreamFromDataSink.prototype.compulsoryConstructionProperties = ['sink','defer'];
 

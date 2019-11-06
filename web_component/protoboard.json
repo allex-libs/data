@@ -1,0 +1,18 @@
+{
+  "browserify": {
+    "dist/browserified.js":"../browserify.js"
+  },
+  "exclude": {
+    "jshint": [
+      "browserified.js"
+    ]
+  },
+  "dependencies": {
+    "js": [
+      "allex:datafilters:lib"
+    ]
+  },
+  "protoboard": {
+    "role":"web_component"
+  }
+}

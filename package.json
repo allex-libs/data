@@ -1,6 +1,6 @@
 {
   "name": "allex_datalib",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "AllexJS lib for data handling",
   "main": "index.js",
   "scripts": {

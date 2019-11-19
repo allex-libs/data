@@ -1,6 +1,6 @@
 {
   "name": "allex_datalib",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "AllexJS lib for data handling",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/allex-libs/data.git"
+    "url": "git@github.com:allex-libs/data.git"
   },
   "keywords": [
     "ecosystem:AllexJS",

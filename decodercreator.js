@@ -4,9 +4,13 @@ function createDataDecoder(execlib, mylib){
       q = lib.q,
       filterFactory = mylib.filterFactory;
 
+  //On any Errors from storable
+  //Decoder will destroy self
+  //and suppress the Error
   function Decoder(storable){
     this.storable = storable;
     this.queryID = null;
+    this.destroyer = this.destroy.bind(this);
   }
   function destroyer (qi) {
     if (qi.destroy) {
@@ -14,7 +18,7 @@ function createDataDecoder(execlib, mylib){
     }
   }
   Decoder.prototype.destroy = function(){
-    var qi;
+    this.destroyer = null;
     this.queryID = null;
     this.storable = null;
   };
@@ -59,26 +63,25 @@ function createDataDecoder(execlib, mylib){
     if (!this.storable) {
       return;
     }
-    return this.storable.beginInit(itemdata);
+    return this.storable.beginInit(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.endRead = function(itemdata){
     if (!this.storable) {
       return;
     }
-    this.storable.endInit(itemdata);
-    return lib.q(true);
+    return this.storable.endInit(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.readOne = function(itemdata){
     if (!this.storable) {
       return;
     }
-    return this.storable.create(itemdata);
+    return this.storable.create(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.create = function(itemdata){
     if (!this.storable) {
       return;
     }
-    return this.storable.create(itemdata);
+    return this.storable.create(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.delete = function(itemdata){
     var f;
@@ -91,7 +94,7 @@ function createDataDecoder(execlib, mylib){
       return lib.q(true);
     }else{
       //console.log(this.storable,this.storable.delete.toString(),'will delete');
-      return this.storable.delete(f);
+      return this.storable.delete(f).then(null, this.destroyer);
     }
   };
   Decoder.prototype.updateExact = function(newitem, olditem){
@@ -100,7 +103,7 @@ function createDataDecoder(execlib, mylib){
       return;
     }
     f = filterFactory.createFromDescriptor({op:'hash',d:olditem});
-    return this.storable.update(f,newitem);
+    return this.storable.update(f,newitem).then(null, this.destroyer);
   };
   Decoder.prototype.update = function(filter, datahash){
     var f;
@@ -108,7 +111,7 @@ function createDataDecoder(execlib, mylib){
       return;
     }
     f = filterFactory.createFromDescriptor(filter);
-    return this.storable.update(f,datahash);
+    return this.storable.update(f,datahash).then(null, this.destroyer);
   };
   return Decoder;
 }

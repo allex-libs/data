@@ -374,7 +374,7 @@ function createStorageBase(execlib, mylib){
     if (!this.jobs) {
       return q(null);
     }
-    return this.jobs.run('op', new InitEnder(this, txnid));
+    return this.jobs.run('op', new InitEnder(this, txnid));//.then(null, console.error.bind(console, 'wut'));
   };
   StorageBase.prototype.delete = function(filter){
     return this.deleteOnChannel(filter, 'op');

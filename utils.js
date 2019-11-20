@@ -18,6 +18,19 @@ function createDataUtils(execlib, mylib){
 
   mylib.inherit = inherit;
 
+  function container (masterarry, item) {
+    return masterarry.indexOf(item)>=0;
+  }
+  function fixvisiblefields (queryprophash, uservisiblefields) {
+    if (!lib.isArray(queryprophash.visiblefields)) {
+      queryprophash.visiblefields = uservisiblefields;
+      return;
+    }
+    queryprophash.visiblefields = queryprophash.visiblefields.filter(container.bind(null, uservisiblefields));
+  }
+
+  mylib.fixvisiblefields = fixvisiblefields;
+
   function isFilterExact (filter) {
     if (filter instanceof mylib.filterFactory.get('eq')) {
       return true;

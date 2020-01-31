@@ -1455,7 +1455,6 @@ function createSuite(execlib, mylib){
 module.exports = createSuite;
 
 },{"./creator":15,"./utils":17}],17:[function(require,module,exports){
-(function (process){
 function createRecordUtils(execlib,suite){
   'use strict';
   var lib = execlib.lib;
@@ -1523,98 +1522,13 @@ function createRecordUtils(execlib,suite){
     return ret;
   }
   suite.copyAndAppendNewElements = copyAndAppendNewElements;
-
-  function sinkInheritProcCreator(classname,originalUIP){//originalUIP <=> original User inheritance proc
-    //classname not used, but may be useful for error reporting...
-    return function(childCtor,methodDescriptors,visiblefieldsarray){
-      originalUIP.call(this,childCtor,methodDescriptors);
-      childCtor.prototype.visibleFields = copyAndAppendNewElements(this.prototype.visibleFields,visiblefieldsarray);
-      childCtor.inherit = this.inherit;
-      //console.log('after inherit',childCtor.prototype.visibleFields,'out of parent',this.prototype.visibleFields,'and',visiblefieldsarray);
-    };
-  }
-
-  function copierWOFields(dest,item,itemname){
-    if(itemname==='fields'){
-      return;
-    }
-    dest[itemname] = item;
-  }
-  function nameFinder(findobj,name,item){
-    if(item && item.name===name){
-      findobj.result = item;
-      return true;
-    }
-  }
-  function getNamedItem(arry,name){
-    var findobj={result:null};
-    arry.some(nameFinder.bind(null,findobj,name));
-    return findobj.result;
-  };
-  function namedSetter(setitem,item,itemindex,arry){
-    if(item && item.name===setitem.name){
-      arry[itemindex] = setitem;
-      return true;
-    }
-  }
-  function setNamedItem(arry,item){
-    if(!item){
-      return;
-    }
-    if(!arry.some(namedSetter.bind(null,item))){
-      arry.push(item);
-    };
-  };
-  function copyNamedItems(src,dest,fieldnamesarry){
-    if(!(lib.isArray(src) && lib.isArray(dest))){
-      return;
-    }
-    fieldnamesarry.forEach(function(fn){
-      var item = getNamedItem(src,fn);
-      if(item){
-        setNamedItem(dest,item);
-      }
-    });
-  }
   suite.duplicateFieldValueInArrayOfHashes = duplicateFieldValueInArrayOfHashes;
   suite.inherit = inherit;
-
-  execlib.execSuite.registry.clientSides.waitFor('.').then(
-    doDaServerSide.bind(null, suite, sinkInheritProcCreator),
-    baseWaiterFailer
-  );
-
-  function baseWaiterFailer (reason) {
-    console.error('Waiting for the client side of the base Service failed');
-    console.error(reason);
-    process.exit(1);
-  }
-
-  function doDaServerSide (_suite, _sinkInheritProcCreator, sm) {
-    var sinkPreInheritProc = _sinkInheritProcCreator('DataSink',sm.get('user').inherit); 
-    _sinkInheritProcCreator = null;
-    function sinkInheritProc(childCtor,methodDescriptors,visiblefieldsarray,classStorageDescriptor){
-      sinkPreInheritProc.call(this,childCtor,methodDescriptors,visiblefieldsarray);
-      var recordDescriptor = {};
-      lib.traverseShallow(this.prototype.recordDescriptor,copierWOFields.bind(null,recordDescriptor));
-      var fields = [];
-      if(this.prototype.recordDescriptor){
-        copyNamedItems(this.prototype.recordDescriptor.fields,fields,childCtor.prototype.visibleFields);
-      }
-      lib.traverseShallow(classStorageDescriptor.record, copierWOFields.bind(null,recordDescriptor));
-      copyNamedItems(classStorageDescriptor.record.fields,fields,childCtor.prototype.visibleFields);
-      recordDescriptor.fields = fields;
-      childCtor.prototype.recordDescriptor = recordDescriptor;
-    }
-    _suite.sinkInheritProc = sinkInheritProc;
-    _suite = null;
-  }
 }
 
 module.exports = createRecordUtils;
 
-}).call(this,require('_process'))
-},{"_process":38}],18:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 function createAssociativeStorageBase (execlib, mylib) {
   'use strict';
   var lib = execlib.lib,

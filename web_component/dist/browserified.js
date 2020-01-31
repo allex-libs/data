@@ -103,9 +103,13 @@ function createDataDecoder(execlib, mylib){
       q = lib.q,
       filterFactory = mylib.filterFactory;
 
+  //On any Errors from storable
+  //Decoder will destroy self
+  //and suppress the Error
   function Decoder(storable){
     this.storable = storable;
     this.queryID = null;
+    this.destroyer = this.destroy.bind(this);
   }
   function destroyer (qi) {
     if (qi.destroy) {
@@ -113,7 +117,7 @@ function createDataDecoder(execlib, mylib){
     }
   }
   Decoder.prototype.destroy = function(){
-    var qi;
+    this.destroyer = null;
     this.queryID = null;
     this.storable = null;
   };
@@ -158,26 +162,25 @@ function createDataDecoder(execlib, mylib){
     if (!this.storable) {
       return;
     }
-    return this.storable.beginInit(itemdata);
+    return this.storable.beginInit(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.endRead = function(itemdata){
     if (!this.storable) {
       return;
     }
-    this.storable.endInit(itemdata);
-    return lib.q(true);
+    return this.storable.endInit(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.readOne = function(itemdata){
     if (!this.storable) {
       return;
     }
-    return this.storable.create(itemdata);
+    return this.storable.create(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.create = function(itemdata){
     if (!this.storable) {
       return;
     }
-    return this.storable.create(itemdata);
+    return this.storable.create(itemdata).then(null, this.destroyer);
   };
   Decoder.prototype.delete = function(itemdata){
     var f;
@@ -190,7 +193,7 @@ function createDataDecoder(execlib, mylib){
       return lib.q(true);
     }else{
       //console.log(this.storable,this.storable.delete.toString(),'will delete');
-      return this.storable.delete(f);
+      return this.storable.delete(f).then(null, this.destroyer);
     }
   };
   Decoder.prototype.updateExact = function(newitem, olditem){
@@ -199,7 +202,7 @@ function createDataDecoder(execlib, mylib){
       return;
     }
     f = filterFactory.createFromDescriptor({op:'hash',d:olditem});
-    return this.storable.update(f,newitem);
+    return this.storable.update(f,newitem).then(null, this.destroyer);
   };
   Decoder.prototype.update = function(filter, datahash){
     var f;
@@ -207,7 +210,7 @@ function createDataDecoder(execlib, mylib){
       return;
     }
     f = filterFactory.createFromDescriptor(filter);
-    return this.storable.update(f,datahash);
+    return this.storable.update(f,datahash).then(null, this.destroyer);
   };
   return Decoder;
 }
@@ -2279,7 +2282,7 @@ function createStorageBase(execlib, mylib){
     if (!this.jobs) {
       return q(null);
     }
-    return this.jobs.run('op', new InitEnder(this, txnid));
+    return this.jobs.run('op', new InitEnder(this, txnid));//.then(null, console.error.bind(console, 'wut'));
   };
   StorageBase.prototype.delete = function(filter){
     return this.deleteOnChannel(filter, 'op');
@@ -2754,7 +2757,8 @@ function createFollowDataTask(execlib, mylib){
   ChildSinkStorage.prototype.beginInit = function () {
     return this.sink.call('delete', null);
   };
-  ChildSinkStorage.prototype.endInit = lib.dummyFunc;
+  //ChildSinkStorage.prototype.endInit = lib.dummyFunc;
+  ChildSinkStorage.prototype.endInit = function () {return q(true);};
   ChildSinkStorage.prototype.create = function(datahash){
     return this.sink.call('create',datahash);
   };
@@ -3717,6 +3721,19 @@ function createDataUtils(execlib, mylib){
   }
 
   mylib.inherit = inherit;
+
+  function container (masterarry, item) {
+    return masterarry.indexOf(item)>=0;
+  }
+  function fixvisiblefields (queryprophash, uservisiblefields) {
+    if (!lib.isArray(queryprophash.visiblefields)) {
+      queryprophash.visiblefields = uservisiblefields;
+      return;
+    }
+    queryprophash.visiblefields = queryprophash.visiblefields.filter(container.bind(null, uservisiblefields));
+  }
+
+  mylib.fixvisiblefields = fixvisiblefields;
 
   function isFilterExact (filter) {
     if (filter instanceof mylib.filterFactory.get('eq')) {

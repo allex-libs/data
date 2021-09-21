@@ -19,7 +19,7 @@ function createMemoryStorage(execlib, mylib){
     return q(true);
   };
   MemoryStorage.prototype._traverseDataRange = function (cb, start, endexclusive) {
-    for(var i=start; i<end; i++){
+    for(var i=start; i<endexclusive; i++){
       cb(query,defer,this.__record.filterHash(this.data[i]));
     }
     return q(true);

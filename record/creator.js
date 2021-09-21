@@ -40,6 +40,7 @@ function createRecord(execlib, outerlib, mylib){
       console.error(prophash);
       throw new Error("Field needs a name");
     }
+    this.type = prophash.type;
     this.value = prophash.value;
     this.default = new DefaultHandler(prophash.default);
   }
@@ -47,6 +48,7 @@ function createRecord(execlib, outerlib, mylib){
     this.default.destroy();
     this.default = null;
     this.value = null;
+    this.type = null;
     this.name = null;
   };
   Field.prototype.valueFor = function(val){

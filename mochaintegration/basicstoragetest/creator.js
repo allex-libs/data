@@ -14,34 +14,44 @@ function basicTestSequence (storageklassfunc, prophashfunc, recorddescriptor, in
     return setGlobal('Manager', instantiateDataManager(prophashfunc, recorddescriptor));
   });
   it('Insert one', function () {
+    this.timeout(1e7);
     return doCreate(Manager, initrecord);
   });
   it('Get that one', function () {
+    this.timeout(1e7);
     return expect(onerecordreader(filter1)).to.eventually.be.ok.and.have.property('age', 55);
   });
   it('Update that one', function () {
+    this.timeout(1e7);
     return doUpdate(Manager, filter1, {age: 59}, null, {name: 'andra', age: 55});
   });
   it('Reread that updated one', function () {
+    this.timeout(1e7);
     return expect(onerecordreader(filter1)).to.eventually.be.ok.and.have.property('age', 59);
   });
   it('Upsert one', function () {
+    this.timeout(1e7);
     return doUpdate(Manager, filter2, upsertrec, {upsert:true});
   });
   it('Reread that upserted one', function () {
+    this.timeout(1e7);
     return expect(onerecordreader(filter2)).to.eventually.be.ok.and.have.property('age', 25);
   });
   it('Read all', function () {
+    this.timeout(1e7);
     return expect(recordreader({}, void(0), 'recordreader')).to.eventually.be.an('array').and.have.deep.members([{name: 'andra', gender: 'm', age: 59},{name: 'lu', gender: 'm', age: 25}]);
   });
   it('Delete that upserted one', function () {
+    this.timeout(1e7);
     return Manager.delete(filter2);
   });
   it('Prove that the upserted one was deleted', function () {
+    this.timeout(1e7);
     return expect(onerecordreader(filter2)).to.eventually.be.null;
   });
   if (recorddescriptor.primaryKey) {
     it('Fail on inserting duplicate', function () {
+      this.timeout(1e7);
       return expect(Manager.create(initrecord)).to.be.rejectedWith('PRIMARY_KEY_VIOLATION');
     });
   }
@@ -49,6 +59,7 @@ function basicTestSequence (storageklassfunc, prophashfunc, recorddescriptor, in
     return q.delay(1000, true);
   });
   it('Destroy Instantiator and its Spawning Manager', function () {
+    this.timeout(1e7);
     Instantiator.destroy();
   });
 }

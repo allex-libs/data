@@ -180,6 +180,9 @@ function createDataManager(execlib, mylib){
       return q(true);
     }
     if (this.storage.__record.primaryKey) {
+      if (this.storage.expectedPrimaryKeyViolation) {
+        return q(true);
+      }
       d = q.defer();
       recs = [];
       qry = new PKQuery(this.storage.__record.primaryKey, datahash);

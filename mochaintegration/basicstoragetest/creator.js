@@ -52,9 +52,13 @@ function basicTestSequence (storageklassfunc, prophashfunc, recorddescriptor, in
   if (recorddescriptor.primaryKey) {
     it('Fail on inserting duplicate', function () {
       this.timeout(1e7);
-      return expect(Manager.create(initrecord)).to.be.rejectedWith('PRIMARY_KEY_VIOLATION');
+      return expect(Manager.create(initrecord)).to.be.rejectedWith(Manager.storage.expectedPrimaryKeyViolation ? Manager.storage.expectedPrimaryKeyViolation : 'PRIMARY_KEY_VIOLATION');
     });
   }
+  it('Delete the first one', function () {
+    this.timeout(1e7);
+    return Manager.delete(filter1);
+  });
   it('Just wait a bit', function () {
     return q.delay(1000, true);
   });
@@ -67,13 +71,19 @@ function basicTestSequence (storageklassfunc, prophashfunc, recorddescriptor, in
 module.exports = function BasicStorageTest (storageklassfunc, prophashfunc) {
   var fields = [{
         name: 'name',
-        type: 'string'
+        type: 'string',
+        sqltype: 'varchar(50)',
+        nullable: false
       },{
         name: 'gender',
-        type: 'string'
+        type: 'string',
+        sqltype: 'varchar(50)',
+        nullable: false
       },{
         name: 'age',
-        type: 'number'
+        type: 'number',
+        sqltype: 'int',
+        nullable: false
       }],
       initrec = {
         name: 'andra',

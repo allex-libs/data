@@ -25,6 +25,9 @@ function createMemoryStorage(execlib, mylib){
     return q(true);
   };
   MemoryStorage.prototype.removeDataAtIndex = function (index) {
+    if (!lib.isArray(this.data)) {
+      return;
+    }
     if (index === this.data.length-1) {
       this.data.pop();
     } else if (index === 0){
